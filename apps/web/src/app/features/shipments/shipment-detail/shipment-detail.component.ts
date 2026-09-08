@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -21,125 +21,127 @@ import {
         <span class="logo">Detalle de Envío</span>
       </nav>
 
-      <main class="content" *ngIf="shipment">
-        <!-- Main Info Card -->
-        <div class="card">
-          <div class="card-header">
-            <div>
-              <span class="tracking-title">{{ shipment.trackingCode }}</span>
-              <span class="badge" [ngClass]="shipment.status.toLowerCase()">
-                {{ getStatusLabel(shipment.status) }}
-              </span>
-            </div>
-            <div class="actions">
-              <button
-                *ngIf="canCancel()"
-                (click)="onCancelShipment()"
-                class="btn-danger"
-              >
-                Cancelar Envío
-              </button>
-              <button
-                *ngIf="getAvailableNextStatuses().length > 0"
-                (click)="openStatusModal()"
-                class="btn-primary"
-              >
-                Cambiar Estado
-              </button>
-            </div>
-          </div>
-
-          <div class="info-grid">
-            <div>
-              <span class="label">Destinatario:</span>
-              <span class="value">{{ shipment.recipientName }}</span>
-            </div>
-            <div>
-              <span class="label">Teléfono:</span>
-              <span class="value">{{ shipment.contactPhone || 'No especificado' }}</span>
-            </div>
-            <div>
-              <span class="label">Origen:</span>
-              <span class="value">{{ shipment.originAddress }}</span>
-            </div>
-            <div>
-              <span class="label">Destino:</span>
-              <span class="value">{{ shipment.destinationAddress }}</span>
-            </div>
-            <div>
-              <span class="label">Peso:</span>
-              <span class="value">{{ shipment.weightKg }} kg</span>
-            </div>
-            <div>
-              <span class="label">Fecha Creación:</span>
-              <span class="value">{{ shipment.createdAt | date: 'dd/MM/yyyy HH:mm' }}</span>
-            </div>
-            <div *ngIf="shipment.deliveredAt">
-              <span class="label">Fecha Entrega:</span>
-              <span class="value font-bold text-success">{{ shipment.deliveredAt | date: 'dd/MM/yyyy HH:mm' }}</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- History Timeline Card -->
-        <div class="card" style="margin-top: 1.5rem;">
-          <h3>Historial de Eventos de Seguimiento</h3>
-          <div class="timeline">
-            <div *ngFor="let ev of shipment.events" class="timeline-item">
-              <div class="timeline-marker"></div>
-              <div class="timeline-content">
-                <div class="timeline-header">
-                  <span class="badge" [ngClass]="ev.status.toLowerCase()">
-                    {{ getStatusLabel(ev.status) }}
-                  </span>
-                  <span class="timeline-date">{{ ev.occurredAt | date: 'dd/MM/yyyy HH:mm' }}</span>
-                </div>
-                <p><strong>Ubicación:</strong> {{ ev.location }}</p>
-                <p><strong>Notas:</strong> {{ ev.notes }}</p>
-                <p class="timeline-user" *ngIf="ev.user">
-                  Registrado por: {{ ev.user.email }} ({{ ev.user.role }})
-                </p>
+      @if (shipment(); as s) {
+        <main class="content">
+          <!-- Main Info Card -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <span class="tracking-title">{{ s.trackingCode }}</span>
+                <span class="badge" [ngClass]="s.status.toLowerCase()">
+                  {{ getStatusLabel(s.status) }}
+                </span>
+              </div>
+              <div class="actions">
+                @if (canCancel()) {
+                  <button (click)="onCancelShipment()" class="btn-danger">Cancelar Envío</button>
+                }
+                @if (getAvailableNextStatuses().length > 0) {
+                  <button (click)="openStatusModal()" class="btn-primary">Cambiar Estado</button>
+                }
               </div>
             </div>
+
+            <div class="info-grid">
+              <div>
+                <span class="label">Destinatario:</span>
+                <span class="value">{{ s.recipientName }}</span>
+              </div>
+              <div>
+                <span class="label">Teléfono:</span>
+                <span class="value">{{ s.contactPhone || 'No especificado' }}</span>
+              </div>
+              <div>
+                <span class="label">Origen:</span>
+                <span class="value">{{ s.originAddress }}</span>
+              </div>
+              <div>
+                <span class="label">Destino:</span>
+                <span class="value">{{ s.destinationAddress }}</span>
+              </div>
+              <div>
+                <span class="label">Peso:</span>
+                <span class="value">{{ s.weightKg }} kg</span>
+              </div>
+              <div>
+                <span class="label">Fecha Creación:</span>
+                <span class="value">{{ s.createdAt | date: 'dd/MM/yyyy HH:mm' }}</span>
+              </div>
+              @if (s.deliveredAt) {
+                <div>
+                  <span class="label">Fecha Entrega:</span>
+                  <span class="value font-bold text-success">{{ s.deliveredAt | date: 'dd/MM/yyyy HH:mm' }}</span>
+                </div>
+              }
+            </div>
           </div>
-        </div>
-      </main>
+
+          <!-- History Timeline Card -->
+          <div class="card" style="margin-top: 1.5rem;">
+            <h3>Historial de Eventos de Seguimiento</h3>
+            <div class="timeline">
+              @for (ev of s.events; track ev.id) {
+                <div class="timeline-item">
+                  <div class="timeline-marker"></div>
+                  <div class="timeline-content">
+                    <div class="timeline-header">
+                      <span class="badge" [ngClass]="ev.status.toLowerCase()">
+                        {{ getStatusLabel(ev.status) }}
+                      </span>
+                      <span class="timeline-date">{{ ev.occurredAt | date: 'dd/MM/yyyy HH:mm' }}</span>
+                    </div>
+                    <p><strong>Ubicación:</strong> {{ ev.location }}</p>
+                    <p><strong>Notas:</strong> {{ ev.notes }}</p>
+                    @if (ev.user) {
+                      <p class="timeline-user">Registrado por: {{ ev.user.email }} ({{ ev.user.role }})</p>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        </main>
+      }
 
       <!-- Modal Cambio de Estado -->
-      <div class="modal-backdrop" *ngIf="showStatusModal">
-        <div class="modal">
-          <h3>Cambiar Estado de Envío</h3>
-          <form [formGroup]="statusForm" (ngSubmit)="onStatusSubmit()">
-            <div class="form-group">
-              <label>Nuevo Estado</label>
-              <select formControlName="status">
-                <option *ngFor="let s of getAvailableNextStatuses()" [value]="s">
-                  {{ getStatusLabel(s) }}
-                </option>
-              </select>
-            </div>
+      @if (showStatusModal()) {
+        <div class="modal-backdrop">
+          <div class="modal">
+            <h3>Cambiar Estado de Envío</h3>
+            <form [formGroup]="statusForm" (ngSubmit)="onStatusSubmit()">
+              <div class="form-group">
+                <label>Nuevo Estado</label>
+                <select formControlName="status">
+                  @for (st of getAvailableNextStatuses(); track st) {
+                    <option [value]="st">{{ getStatusLabel(st) }}</option>
+                  }
+                </select>
+              </div>
 
-            <div class="form-group">
-              <label>Ubicación Actual</label>
-              <input formControlName="location" placeholder="Centro Logístico Madrid Norte" />
-            </div>
+              <div class="form-group">
+                <label>Ubicación Actual</label>
+                <input formControlName="location" placeholder="Centro Logístico Madrid Norte" />
+              </div>
 
-            <div class="form-group">
-              <label>Notas del Evento</label>
-              <textarea formControlName="notes" rows="3" placeholder="Paquete inspeccionado y listo para reparto."></textarea>
-            </div>
+              <div class="form-group">
+                <label>Notas del Evento</label>
+                <textarea formControlName="notes" rows="3" placeholder="Paquete listo para entrega."></textarea>
+              </div>
 
-            <div *ngIf="statusError" class="alert-error">{{ statusError }}</div>
+              @if (statusError()) {
+                <div class="alert-error">{{ statusError() }}</div>
+              }
 
-            <div class="modal-actions">
-              <button type="button" (click)="closeStatusModal()" class="btn-secondary">Cancelar</button>
-              <button type="submit" [disabled]="statusForm.invalid || updating" class="btn-primary">
-                {{ updating ? 'Actualizando...' : 'Guardar Estado' }}
-              </button>
-            </div>
-          </form>
+              <div class="modal-actions">
+                <button type="button" (click)="closeStatusModal()" class="btn-secondary">Cancelar</button>
+                <button type="submit" [disabled]="statusForm.invalid || updating()" class="btn-primary">
+                  {{ updating() ? 'Actualizando...' : 'Guardar Estado' }}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
-      </div>
+      }
     </div>
   `,
   styles: [`
@@ -185,12 +187,12 @@ import {
   `],
 })
 export class ShipmentDetailComponent implements OnInit {
-  shipment: Shipment | null = null;
-  shipmentId: string = '';
-  showStatusModal = false;
+  shipment = signal<Shipment | null>(null);
+  shipmentId = '';
+  showStatusModal = signal(false);
   statusForm: FormGroup;
-  updating = false;
-  statusError = '';
+  updating = signal(false);
+  statusError = signal('');
 
   constructor(
     private route: ActivatedRoute,
@@ -214,7 +216,7 @@ export class ShipmentDetailComponent implements OnInit {
   loadShipment(): void {
     this.shipmentsService.getShipmentById(this.shipmentId).subscribe({
       next: (data) => {
-        this.shipment = data;
+        this.shipment.set(data);
       },
     });
   }
@@ -224,16 +226,18 @@ export class ShipmentDetailComponent implements OnInit {
   }
 
   getAvailableNextStatuses(): ShipmentStatus[] {
-    if (!this.shipment) return [];
-    return VALID_TRANSITIONS[this.shipment.status] || [];
+    const s = this.shipment();
+    if (!s) return [];
+    return VALID_TRANSITIONS[s.status] || [];
   }
 
   canCancel(): boolean {
-    if (!this.shipment) return false;
+    const s = this.shipment();
+    if (!s) return false;
     return (
-      this.shipment.status !== ShipmentStatus.DELIVERED &&
-      this.shipment.status !== ShipmentStatus.RETURNED &&
-      this.shipment.status !== ShipmentStatus.CANCELLED
+      s.status !== ShipmentStatus.DELIVERED &&
+      s.status !== ShipmentStatus.RETURNED &&
+      s.status !== ShipmentStatus.CANCELLED
     );
   }
 
@@ -241,36 +245,36 @@ export class ShipmentDetailComponent implements OnInit {
     const nextStatuses = this.getAvailableNextStatuses();
     if (nextStatuses.length === 0) return;
 
-    this.showStatusModal = true;
+    this.showStatusModal.set(true);
     this.statusForm.reset({
       status: nextStatuses[0],
-      location: this.shipment?.destinationAddress || '',
+      location: this.shipment()?.destinationAddress || '',
       notes: '',
     });
-    this.statusError = '';
+    this.statusError.set('');
   }
 
   closeStatusModal(): void {
-    this.showStatusModal = false;
+    this.showStatusModal.set(false);
   }
 
   onStatusSubmit(): void {
     if (this.statusForm.invalid) return;
 
-    this.updating = true;
-    this.statusError = '';
+    this.updating.set(true);
+    this.statusError.set('');
 
     this.shipmentsService
       .updateStatus(this.shipmentId, this.statusForm.value)
       .subscribe({
         next: (updated) => {
-          this.shipment = updated;
-          this.updating = false;
+          this.shipment.set(updated);
+          this.updating.set(false);
           this.closeStatusModal();
         },
         error: (err) => {
-          this.updating = false;
-          this.statusError = err.error?.message || 'Error al cambiar el estado.';
+          this.updating.set(false);
+          this.statusError.set(err.error?.message || 'Error al cambiar el estado.');
         },
       });
   }
@@ -280,7 +284,7 @@ export class ShipmentDetailComponent implements OnInit {
 
     this.shipmentsService.cancelShipment(this.shipmentId).subscribe({
       next: (cancelled) => {
-        this.shipment = cancelled;
+        this.shipment.set(cancelled);
       },
       error: (err) => {
         alert(err.error?.message || 'Error al cancelar el envío.');

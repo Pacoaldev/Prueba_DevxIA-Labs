@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -36,16 +36,16 @@ import { Role } from '../../../core/models/auth.model';
             </select>
           </div>
 
-          <div *ngIf="successMessage" class="alert-success">
-            {{ successMessage }}
-          </div>
+          @if (successMessage()) {
+            <div class="alert-success">{{ successMessage() }}</div>
+          }
 
-          <div *ngIf="errorMessage" class="alert-error">
-            {{ errorMessage }}
-          </div>
+          @if (errorMessage()) {
+            <div class="alert-error">{{ errorMessage() }}</div>
+          }
 
-          <button type="submit" [disabled]="form.invalid || loading" class="btn-submit">
-            {{ loading ? 'Registrando...' : 'Registrar Usuario' }}
+          <button type="submit" [disabled]="form.invalid || loading()" class="btn-submit">
+            {{ loading() ? 'Registrando...' : 'Registrar Usuario' }}
           </button>
         </form>
 
@@ -56,48 +56,16 @@ import { Role } from '../../../core/models/auth.model';
     </div>
   `,
   styles: [`
-    .register-container {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      background: #f1f5f9;
-      font-family: system-ui, -apple-system, sans-serif;
-    }
-    .register-card {
-      background: white;
-      padding: 2.5rem;
-      border-radius: 12px;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
-      width: 100%;
-      max-width: 420px;
-    }
+    .register-container { display: flex; justify-content: center; align-items: center; min-height: 100vh; background: #f1f5f9; font-family: system-ui, -apple-system, sans-serif; }
+    .register-card { background: white; padding: 2.5rem; border-radius: 12px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08); width: 100%; max-width: 420px; }
     .header h2 { margin: 0 0 0.5rem; color: #0f172a; font-size: 1.75rem; text-align: center; }
     .header p { margin: 0 0 2rem; color: #64748b; font-size: 0.9rem; text-align: center; }
     .form-group { margin-bottom: 1.25rem; }
     .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 500; color: #334155; font-size: 0.9rem; }
-    .form-group input, .form-group select {
-      width: 100%;
-      padding: 0.75rem;
-      border: 1px solid #cbd5e1;
-      border-radius: 6px;
-      box-sizing: border-box;
-      font-size: 1rem;
-    }
+    .form-group input, .form-group select { width: 100%; padding: 0.75rem; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 1rem; }
     .alert-success { background: #f0fdf4; color: #166534; padding: 0.75rem; border-radius: 6px; font-size: 0.875rem; margin-bottom: 1rem; border: 1px solid #bbf7d0; }
     .alert-error { background: #fef2f2; color: #991b1b; padding: 0.75rem; border-radius: 6px; font-size: 0.875rem; margin-bottom: 1rem; border: 1px solid #fecaca; }
-    .btn-submit {
-      width: 100%;
-      padding: 0.85rem;
-      background: #059669;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      font-weight: 600;
-      font-size: 1rem;
-      cursor: pointer;
-    }
-    .btn-submit:hover:not(:disabled) { background: #047857; }
+    .btn-submit { width: 100%; padding: 0.85rem; background: #059669; color: white; border: none; border-radius: 6px; font-weight: 600; font-size: 1rem; cursor: pointer; }
     .btn-submit:disabled { background: #94a3b8; cursor: not-allowed; }
     .footer { margin-top: 1.5rem; text-align: center; font-size: 0.9rem; }
     .footer a { color: #2563eb; text-decoration: none; }
@@ -106,9 +74,9 @@ import { Role } from '../../../core/models/auth.model';
 export class RegisterComponent {
   Role = Role;
   form: FormGroup;
-  loading = false;
-  successMessage = '';
-  errorMessage = '';
+  loading = signal(false);
+  successMessage = signal('');
+  errorMessage = signal('');
 
   constructor(
     private fb: FormBuilder,
@@ -125,19 +93,19 @@ export class RegisterComponent {
   onSubmit(): void {
     if (this.form.invalid) return;
 
-    this.loading = true;
-    this.successMessage = '';
-    this.errorMessage = '';
+    this.loading.set(true);
+    this.successMessage.set('');
+    this.errorMessage.set('');
 
     this.authService.register(this.form.value).subscribe({
       next: (user) => {
-        this.loading = false;
-        this.successMessage = `Usuario ${user.email} (${user.role}) registrado exitosamente.`;
+        this.loading.set(false);
+        this.successMessage.set(`Usuario ${user.email} (${user.role}) registrado exitosamente.`);
         this.form.reset({ role: Role.OPERATOR });
       },
       error: (err) => {
-        this.loading = false;
-        this.errorMessage = err.error?.message || 'Error al registrar el usuario.';
+        this.loading.set(false);
+        this.errorMessage.set(err.error?.message || 'Error al registrar el usuario.');
       },
     });
   }

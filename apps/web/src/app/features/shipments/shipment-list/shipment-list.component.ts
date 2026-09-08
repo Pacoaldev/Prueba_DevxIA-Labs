@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -22,9 +22,9 @@ import {
         <div class="logo">TransLog - Operativa</div>
         <div class="user-info">
           <span>{{ currentUser()?.email }} ({{ currentUser()?.role }})</span>
-          <button *ngIf="isSupervisor()" routerLink="/register" class="btn-secondary">
-            Registrar Usuario
-          </button>
+          @if (isSupervisor()) {
+            <button routerLink="/register" class="btn-secondary">Registrar Usuario</button>
+          }
           <button (click)="logout()" class="btn-danger">Cerrar Sesión</button>
         </div>
       </nav>
@@ -43,9 +43,9 @@ import {
           <label>Filtrar por Estado:</label>
           <select [(ngModel)]="selectedStatus" (change)="onFilterChange()">
             <option value="">Todos los Estados</option>
-            <option *ngFor="let s of statusOptions" [value]="s.value">
-              {{ s.label }}
-            </option>
+            @for (s of statusOptions; track s.value) {
+              <option [value]="s.value">{{ s.label }}</option>
+            }
           </select>
         </div>
 
@@ -65,128 +65,144 @@ import {
               </tr>
             </thead>
             <tbody>
-              <tr *ngIf="loading">
-                <td colspan="8" class="text-center">Cargando envíos...</td>
-              </tr>
-              <tr *ngIf="!loading && shipments.length === 0">
-                <td colspan="8" class="text-center">No se encontraron envíos.</td>
-              </tr>
-              <tr *ngFor="let s of shipments">
-                <td>
-                  <input
-                    type="checkbox"
-                    [disabled]="s.status !== ShipmentStatus.IN_WAREHOUSE"
-                    [checked]="isShipmentSelected(s.id)"
-                    (change)="toggleSelectShipment(s.id)"
-                  />
-                </td>
-                <td class="font-mono"><strong>{{ s.trackingCode }}</strong></td>
-                <td>{{ s.recipientName }}</td>
-                <td>{{ s.destinationAddress }}</td>
-                <td>{{ s.weightKg }} kg</td>
-                <td>
-                  <span class="badge" [ngClass]="s.status.toLowerCase()">
-                    {{ getStatusLabel(s.status) }}
-                  </span>
-                </td>
-                <td>{{ s.createdAt | date: 'dd/MM/yyyy HH:mm' }}</td>
-                <td>
-                  <a [routerLink]="['/shipments', s.id]" class="btn-link">Ver Detalle</a>
-                </td>
-              </tr>
+              @if (loading()) {
+                <tr><td colspan="8" class="text-center">Cargando envíos...</td></tr>
+              } @else if (shipments().length === 0) {
+                <tr><td colspan="8" class="text-center">No se encontraron envíos.</td></tr>
+              } @else {
+                @for (s of shipments(); track s.id) {
+                  <tr>
+                    <td>
+                      <input
+                        type="checkbox"
+                        [disabled]="s.status !== ShipmentStatus.IN_WAREHOUSE"
+                        [checked]="isShipmentSelected(s.id)"
+                        (change)="toggleSelectShipment(s.id)"
+                      />
+                    </td>
+                    <td class="font-mono"><strong>{{ s.trackingCode }}</strong></td>
+                    <td>{{ s.recipientName }}</td>
+                    <td>{{ s.destinationAddress }}</td>
+                    <td>{{ s.weightKg }} kg</td>
+                    <td>
+                      <span class="badge" [ngClass]="s.status.toLowerCase()">
+                        {{ getStatusLabel(s.status) }}
+                      </span>
+                    </td>
+                    <td>{{ s.createdAt | date: 'dd/MM/yyyy HH:mm' }}</td>
+                    <td>
+                      <a [routerLink]="['/shipments', s.id]" class="btn-link">Ver Detalle</a>
+                    </td>
+                  </tr>
+                }
+              }
             </tbody>
           </table>
         </div>
 
         <!-- Pagination -->
-        <div class="pagination" *ngIf="totalPages > 1">
-          <button (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 1">Anterior</button>
-          <span>Página {{ currentPage }} de {{ totalPages }}</span>
-          <button (click)="goToPage(currentPage + 1)" [disabled]="currentPage === totalPages">Siguiente</button>
-        </div>
+        @if (totalPages() > 1) {
+          <div class="pagination">
+            <button (click)="goToPage(currentPage() - 1)" [disabled]="currentPage() === 1">Anterior</button>
+            <span>Página {{ currentPage() }} de {{ totalPages() }}</span>
+            <button (click)="goToPage(currentPage() + 1)" [disabled]="currentPage() === totalPages()">Siguiente</button>
+          </div>
+        }
       </main>
 
       <!-- Modal Crear Envío -->
-      <div class="modal-backdrop" *ngIf="showCreateModal">
-        <div class="modal">
-          <h3>Crear Nuevo Envío</h3>
-          <form [formGroup]="createForm" (ngSubmit)="onCreateSubmit()">
-            <div class="form-group">
-              <label>Dirección de Origen</label>
-              <input formControlName="originAddress" placeholder="Almacén Central Madrid" />
-            </div>
-            <div class="form-group">
-              <label>Dirección de Destino</label>
-              <input formControlName="destinationAddress" placeholder="Av. Diagonal 123, Barcelona" />
-            </div>
-            <div class="form-group">
-              <label>Nombre del Destinatario</label>
-              <input formControlName="recipientName" placeholder="Juan Pérez" />
-            </div>
-            <div class="form-group">
-              <label>Teléfono de Contacto (Opcional)</label>
-              <input formControlName="contactPhone" placeholder="+34 600 000 000" />
-            </div>
-            <div class="form-group">
-              <label>Peso (kg)</label>
-              <input type="number" step="0.1" formControlName="weightKg" placeholder="15.5" />
-            </div>
+      @if (showCreateModal()) {
+        <div class="modal-backdrop">
+          <div class="modal">
+            <h3>Crear Nuevo Envío</h3>
+            <form [formGroup]="createForm" (ngSubmit)="onCreateSubmit()">
+              <div class="form-group">
+                <label>Dirección de Origen</label>
+                <input formControlName="originAddress" placeholder="Almacén Central Madrid" />
+              </div>
+              <div class="form-group">
+                <label>Dirección de Destino</label>
+                <input formControlName="destinationAddress" placeholder="Av. Diagonal 123, Barcelona" />
+              </div>
+              <div class="form-group">
+                <label>Nombre del Destinatario</label>
+                <input formControlName="recipientName" placeholder="Juan Pérez" />
+              </div>
+              <div class="form-group">
+                <label>Teléfono de Contacto (Opcional)</label>
+                <input formControlName="contactPhone" placeholder="+34 600 000 000" />
+              </div>
+              <div class="form-group">
+                <label>Peso (kg)</label>
+                <input type="number" step="0.1" formControlName="weightKg" placeholder="15.5" />
+              </div>
 
-            <div *ngIf="createError" class="alert-error">{{ createError }}</div>
+              @if (createError()) {
+                <div class="alert-error">{{ createError() }}</div>
+              }
 
-            <div class="modal-actions">
-              <button type="button" (click)="closeCreateModal()" class="btn-secondary">Cancelar</button>
-              <button type="submit" [disabled]="createForm.invalid || creating" class="btn-primary">
-                {{ creating ? 'Guardando...' : 'Crear Envío' }}
-              </button>
-            </div>
-          </form>
+              <div class="modal-actions">
+                <button type="button" (click)="closeCreateModal()" class="btn-secondary">Cancelar</button>
+                <button type="submit" [disabled]="createForm.invalid || creating()" class="btn-primary">
+                  {{ creating() ? 'Guardando...' : 'Crear Envío' }}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
-      </div>
+      }
 
       <!-- Modal Asignación de Vehículos -->
-      <div class="modal-backdrop" *ngIf="showAssignModal">
-        <div class="modal modal-lg">
-          <h3>Asignar Vehículos (First Fit Decreasing)</h3>
-          <p>Seleccione envíos en almacén (IN_WAREHOUSE) e ingrese la capacidad máxima por vehículo.</p>
+      @if (showAssignModal()) {
+        <div class="modal-backdrop">
+          <div class="modal modal-lg">
+            <h3>Asignar Vehículos (First Fit Decreasing)</h3>
+            <p>Seleccione envíos en almacén (IN_WAREHOUSE) e ingrese la capacidad máxima por vehículo.</p>
 
-          <div class="form-group">
-            <label>Capacidad Máxima por Vehículo (kg)</label>
-            <input type="number" [(ngModel)]="vehicleCapacity" placeholder="100" />
-          </div>
+            <div class="form-group">
+              <label>Capacidad Máxima por Vehículo (kg)</label>
+              <input type="number" [(ngModel)]="vehicleCapacity" placeholder="100" />
+            </div>
 
-          <p>Envíos seleccionados: <strong>{{ selectedShipmentIds.length }}</strong></p>
+            <p>Envíos seleccionados: <strong>{{ selectedShipmentIds().length }}</strong></p>
 
-          <div *ngIf="assignError" class="alert-error">{{ assignError }}</div>
+            @if (assignError()) {
+              <div class="alert-error">{{ assignError() }}</div>
+            }
 
-          <button
-            (click)="runVehicleAssignment()"
-            [disabled]="selectedShipmentIds.length === 0 || vehicleCapacity <= 0 || assigning"
-            class="btn-primary"
-          >
-            {{ assigning ? 'Calculando...' : 'Ejecutar Algoritmo FFD' }}
-          </button>
+            <button
+              (click)="runVehicleAssignment()"
+              [disabled]="selectedShipmentIds().length === 0 || vehicleCapacity <= 0 || assigning()"
+              class="btn-primary"
+            >
+              {{ assigning() ? 'Calculando...' : 'Ejecutar Algoritmo FFD' }}
+            </button>
 
-          <!-- Resultados -->
-          <div *ngIf="assignmentResult" class="results-container">
-            <h4>Resultado de Asignación</h4>
-            <p>Total vehículos usados: <strong>{{ assignmentResult.totalVehiclesUsed }}</strong> | Peso total: <strong>{{ assignmentResult.totalWeight }} kg</strong></p>
+            <!-- Resultados -->
+            @if (assignmentResult()) {
+              <div class="results-container">
+                <h4>Resultado de Asignación</h4>
+                <p>Total vehículos usados: <strong>{{ assignmentResult()?.totalVehiclesUsed }}</strong> | Peso total: <strong>{{ assignmentResult()?.totalWeight }} kg</strong></p>
 
-            <div *ngFor="let v of assignmentResult.vehicles" class="vehicle-card">
-              <h5>Vehículo #{{ v.vehicleNumber }} — Ocupación: {{ v.totalWeight }} kg (Restante: {{ v.remainingCapacity }} kg)</h5>
-              <ul>
-                <li *ngFor="let item of v.shipments">
-                  {{ item.trackingCode }} — {{ item.weight }} kg
-                </li>
-              </ul>
+                @for (v of assignmentResult()?.vehicles; track v.vehicleNumber) {
+                  <div class="vehicle-card">
+                    <h5>Vehículo #{{ v.vehicleNumber }} — Ocupación: {{ v.totalWeight }} kg (Restante: {{ v.remainingCapacity }} kg)</h5>
+                    <ul>
+                      @for (item of v.shipments; track item.shipmentId) {
+                        <li>{{ item.trackingCode }} — {{ item.weight }} kg</li>
+                      }
+                    </ul>
+                  </div>
+                }
+              </div>
+            }
+
+            <div class="modal-actions" style="margin-top: 1.5rem;">
+              <button (click)="closeAssignModal()" class="btn-secondary">Cerrar</button>
             </div>
           </div>
-
-          <div class="modal-actions" style="margin-top: 1.5rem;">
-            <button (click)="closeAssignModal()" class="btn-secondary">Cerrar</button>
-          </div>
         </div>
-      </div>
+      }
     </div>
   `,
   styles: [`
@@ -234,12 +250,12 @@ import {
 })
 export class ShipmentListComponent implements OnInit {
   ShipmentStatus = ShipmentStatus;
-  shipments: Shipment[] = [];
-  loading = false;
-  currentPage = 1;
-  totalPages = 1;
+  shipments = signal<Shipment[]>([]);
+  loading = signal(false);
+  currentPage = signal(1);
+  totalPages = signal(1);
   selectedStatus: string = '';
-  selectedShipmentIds: string[] = [];
+  selectedShipmentIds = signal<string[]>([]);
 
   statusOptions = Object.keys(ShipmentStatus).map((key) => ({
     value: key,
@@ -247,17 +263,17 @@ export class ShipmentListComponent implements OnInit {
   }));
 
   // Modal Crear
-  showCreateModal = false;
+  showCreateModal = signal(false);
   createForm: FormGroup;
-  creating = false;
-  createError = '';
+  creating = signal(false);
+  createError = signal('');
 
   // Modal Asignar Vehículos
-  showAssignModal = false;
+  showAssignModal = signal(false);
   vehicleCapacity = 100;
-  assigning = false;
-  assignError = '';
-  assignmentResult: VehicleAssignmentResult | null = null;
+  assigning = signal(false);
+  assignError = signal('');
+  assignmentResult = signal<VehicleAssignmentResult | null>(null);
 
   constructor(
     private shipmentsService: ShipmentsService,
@@ -294,99 +310,100 @@ export class ShipmentListComponent implements OnInit {
   }
 
   loadShipments(): void {
-    this.loading = true;
+    this.loading.set(true);
     const statusParam = this.selectedStatus ? (this.selectedStatus as ShipmentStatus) : undefined;
-    this.shipmentsService.getShipments(this.currentPage, 10, statusParam).subscribe({
+    this.shipmentsService.getShipments(this.currentPage(), 10, statusParam).subscribe({
       next: (res) => {
-        this.shipments = res.data;
-        this.totalPages = res.meta.totalPages;
-        this.loading = false;
+        this.shipments.set(res.data);
+        this.totalPages.set(res.meta.totalPages);
+        this.loading.set(false);
       },
       error: () => {
-        this.loading = false;
+        this.loading.set(false);
       },
     });
   }
 
   onFilterChange(): void {
-    this.currentPage = 1;
+    this.currentPage.set(1);
     this.loadShipments();
   }
 
   goToPage(page: number): void {
-    if (page >= 1 && page <= this.totalPages) {
-      this.currentPage = page;
+    if (page >= 1 && page <= this.totalPages()) {
+      this.currentPage.set(page);
       this.loadShipments();
     }
   }
 
   isShipmentSelected(id: string): boolean {
-    return this.selectedShipmentIds.includes(id);
+    return this.selectedShipmentIds().includes(id);
   }
 
   toggleSelectShipment(id: string): void {
-    if (this.isShipmentSelected(id)) {
-      this.selectedShipmentIds = this.selectedShipmentIds.filter((item) => item !== id);
+    const current = this.selectedShipmentIds();
+    if (current.includes(id)) {
+      this.selectedShipmentIds.set(current.filter((item) => item !== id));
     } else {
-      this.selectedShipmentIds.push(id);
+      this.selectedShipmentIds.set([...current, id]);
     }
   }
 
   openCreateModal(): void {
-    this.showCreateModal = true;
+    this.showCreateModal.set(true);
     this.createForm.reset({ weightKg: 1.0 });
-    this.createError = '';
+    this.createError.set('');
   }
 
   closeCreateModal(): void {
-    this.showCreateModal = false;
+    this.showCreateModal.set(false);
   }
 
   onCreateSubmit(): void {
     if (this.createForm.invalid) return;
 
-    this.creating = true;
-    this.createError = '';
+    this.creating.set(true);
+    this.createError.set('');
 
     this.shipmentsService.createShipment(this.createForm.value).subscribe({
       next: () => {
-        this.creating = false;
+        this.creating.set(false);
         this.closeCreateModal();
         this.loadShipments();
       },
       error: (err) => {
-        this.creating = false;
-        this.createError = err.error?.message || 'Error al crear el envío.';
+        this.creating.set(false);
+        this.createError.set(err.error?.message || 'Error al crear el envío.');
       },
     });
   }
 
   openAssignModal(): void {
-    this.showAssignModal = true;
-    this.assignError = '';
-    this.assignmentResult = null;
+    this.showAssignModal.set(true);
+    this.assignError.set('');
+    this.assignmentResult.set(null);
   }
 
   closeAssignModal(): void {
-    this.showAssignModal = false;
+    this.showAssignModal.set(false);
   }
 
   runVehicleAssignment(): void {
-    if (this.selectedShipmentIds.length === 0 || this.vehicleCapacity <= 0) return;
+    if (this.selectedShipmentIds().length === 0 || this.vehicleCapacity <= 0) return;
 
-    this.assigning = true;
-    this.assignError = '';
+    this.assigning.set(true);
+    this.assignError.set('');
 
     this.shipmentsService
-      .assignVehicles(this.selectedShipmentIds, this.vehicleCapacity)
+      .assignVehicles(this.selectedShipmentIds(), this.vehicleCapacity)
       .subscribe({
         next: (result) => {
-          this.assigning = false;
-          this.assignmentResult = result;
+          this.assigning.set(false);
+          this.assignmentResult.set(result);
         },
         error: (err) => {
-          this.assigning = false;
-          this.assignError = err.error?.message || 'Error al calcular la asignación de vehículos.';
+          this.assigning.set(false);
+          this.assignError.set(err.error?.message || 'Error al calcular la asignación de vehículos.');
         },
       });
   }

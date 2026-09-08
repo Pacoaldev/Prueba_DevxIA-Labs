@@ -32,4 +32,18 @@ export const routes: Routes = [
         (m) => m.ShipmentDetailComponent,
       ),
   },
+  {
+    path: 'tracking',
+    loadComponent: () =>
+      import('./features/tracking/public-tracking/public-tracking.component').then(
+        (m) => m.PublicTrackingComponent,
+      ),
+  },
+  {
+    path: 'tracking/:trackingCode',
+    loadComponent: () =>
+      import('./features/tracking/public-tracking/public-tracking.component').then(
+        (m) => m.PublicTrackingComponent,
+      ),
+  },
 ];
