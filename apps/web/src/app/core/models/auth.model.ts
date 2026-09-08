@@ -1,0 +1,26 @@
+export enum Role {
+  OPERATOR = 'OPERATOR',
+  SUPERVISOR = 'SUPERVISOR',
+}
+
+export interface User {
+  id: string;
+  email: string;
+  role: Role;
+}
+
+export interface AuthResponse {
+  accessToken: string;
+  user: User;
+}
+
+export interface LoginPayload {
+  email: string;
+  password: string;
+}
+
+export interface RegisterPayload {
+  email: string;
+  password: string;
+  role: Role;
+}
