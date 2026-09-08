@@ -1,18 +1,18 @@
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 RUN apk add --no-cache openssl ca-certificates
 WORKDIR /app
 COPY package*.json ./
-RUN npm install --ignore-scripts
+RUN npm install --legacy-peer-deps --ignore-scripts
 COPY . .
 RUN npx prisma generate
 RUN npm run build
 
-FROM node:20-alpine AS runner
+FROM node:22-alpine AS runner
 RUN apk add --no-cache openssl ca-certificates
 WORKDIR /app
 COPY package*.json ./
 COPY prisma ./prisma
-RUN npm install --omit=dev --ignore-scripts
+RUN npm install --omit=dev --legacy-peer-deps --ignore-scripts
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 
