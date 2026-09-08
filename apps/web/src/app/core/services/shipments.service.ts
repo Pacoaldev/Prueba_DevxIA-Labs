@@ -14,7 +14,7 @@ import {
   providedIn: 'root',
 })
 export class ShipmentsService {
-  private readonly API_URL = 'http://localhost:3000/shipments';
+  private readonly API_URL = 'http://localhost:8080/shipments';
 
   constructor(private http: HttpClient) {}
 

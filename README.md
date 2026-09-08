@@ -71,9 +71,9 @@ Ejecuta el siguiente comando en la raíz del proyecto:
 docker-compose up --build
 ```
 
-- **Frontend Angular**: `http://localhost:4200`
-- **Backend NestJS**: `http://localhost:3000`
-- **PostgreSQL**: `localhost:5432`
+- **Frontend Angular (Web App)**: `http://localhost:4200`
+- **Backend NestJS (API REST)**: `http://localhost:8080`
+- **PostgreSQL Database**: `localhost:5433`
 
 ---
 

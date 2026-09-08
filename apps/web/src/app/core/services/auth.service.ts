@@ -8,7 +8,7 @@ import { AuthResponse, LoginPayload, RegisterPayload, Role, User } from '../mode
   providedIn: 'root',
 })
 export class AuthService {
-  private readonly API_URL = 'http://localhost:3000/auth';
+  private readonly API_URL = 'http://localhost:8080/auth';
   private readonly TOKEN_KEY = 'translog_token';
   private readonly USER_KEY = 'translog_user';
 

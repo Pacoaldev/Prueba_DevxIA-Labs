@@ -25,7 +25,7 @@ export interface PublicTrackingInfo {
   providedIn: 'root',
 })
 export class TrackingService {
-  private readonly API_URL = 'http://localhost:3000/tracking';
+  private readonly API_URL = 'http://localhost:8080/tracking';
 
   constructor(private http: HttpClient) {}
 
