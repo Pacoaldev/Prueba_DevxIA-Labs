@@ -3,6 +3,7 @@ node_modules/
 dist/
 build/
 .angular/
+*.tsbuildinfo
 
 # environment files
 .env
