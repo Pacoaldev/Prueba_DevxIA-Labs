@@ -23,6 +23,7 @@ import {
         <div class="user-info">
           <span>{{ currentUser()?.email }} ({{ currentUser()?.role }})</span>
           @if (isSupervisor()) {
+            <button routerLink="/dashboard" class="btn-secondary">Dashboard</button>
             <button routerLink="/register" class="btn-secondary">Registrar Usuario</button>
           }
           <button (click)="logout()" class="btn-danger">Cerrar Sesión</button>
@@ -33,6 +34,9 @@ import {
         <div class="header-actions">
           <h2>Gestión de Envíos</h2>
           <div class="actions">
+            @if (isSupervisor()) {
+              <button (click)="exportCsv()" class="btn-secondary">Exportar CSV</button>
+            }
             <button (click)="openAssignModal()" class="btn-secondary">Asignar Vehículos (FFD)</button>
             <button (click)="openCreateModal()" class="btn-primary">+ Nuevo Envío</button>
           </div>
@@ -406,5 +410,22 @@ export class ShipmentListComponent implements OnInit {
           this.assignError.set(err.error?.message || 'Error al calcular la asignación de vehículos.');
         },
       });
+  }
+
+  exportCsv(): void {
+    const statusParam = this.selectedStatus ? this.selectedStatus : undefined;
+    this.shipmentsService.exportCsv(statusParam).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `envios_${new Date().toISOString().slice(0, 10)}.csv`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+      },
+      error: (err) => {
+        alert(err.error?.message || 'Error al exportar los envíos a CSV.');
+      },
+    });
   }
 }

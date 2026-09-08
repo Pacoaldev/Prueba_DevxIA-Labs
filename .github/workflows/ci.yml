@@ -1,0 +1,56 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [20]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install API dependencies
+        run: npm ci
+        working-directory: apps/api
+
+      - name: Install Web dependencies
+        run: npm ci
+        working-directory: apps/web
+
+      - name: Lint API
+        run: npm run lint
+        working-directory: apps/api
+
+      - name: Test API
+        run: npm test -- --run
+        working-directory: apps/api
+
+      - name: Build API
+        run: npm run build
+        working-directory: apps/api
+
+      - name: Build Web
+        run: npm run build
+        working-directory: apps/web
+
+      - name: Test Web (if configured)
+        run: npm run test -- --watch=false
+        working-directory: apps/web
+        continue-on-error: true

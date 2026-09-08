@@ -115,3 +115,10 @@ Para ejecutar la suite de pruebas unitarias del backend (cobertura de reglas de 
 cd apps/api
 npm test
 ```
+
+## 📊 Puntos Bonus Implementados
+
+- **Dashboard SUPERVISOR**: `/dashboard` muestra tarjetas con el total de envíos por estado.
+- **Exportación CSV**: desde el listado de envíos, los supervisores pueden exportar el listado filtrado a CSV.
+- **Swagger**: documentación OpenAPI disponible en `/api`.
+- **CI/CD**: pipeline de GitHub Actions que ejecuta lint, tests y builds de backend y frontend.

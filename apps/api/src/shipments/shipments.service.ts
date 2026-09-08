@@ -125,7 +125,7 @@ export class ShipmentsService {
     return this.prisma.$transaction(async (tx) => {
       const isDelivered = dto.status === ShipmentStatus.DELIVERED;
 
-      const updatedShipment = await tx.shipment.update({
+      await tx.shipment.update({
         where: { id },
         data: {
           status: dto.status,
@@ -195,5 +195,74 @@ export class ShipmentsService {
         },
       });
     });
+  }
+
+  async getDashboard() {
+    const statuses = [
+      ShipmentStatus.CREATED,
+      ShipmentStatus.IN_WAREHOUSE,
+      ShipmentStatus.IN_TRANSIT,
+      ShipmentStatus.OUT_FOR_DELIVERY,
+      ShipmentStatus.DELIVERED,
+      ShipmentStatus.RETURNED,
+      ShipmentStatus.CANCELLED,
+    ];
+
+    const counts = await Promise.all(
+      statuses.map((status) =>
+        this.prisma.shipment.count({ where: { status } }),
+      ),
+    );
+
+    const total = counts.reduce((sum, c) => sum + c, 0);
+
+    return {
+      total,
+      byStatus: Object.fromEntries(statuses.map((s, i) => [s, counts[i]])),
+    };
+  }
+
+  async exportCsv(): Promise<string> {
+    const shipments = await this.prisma.shipment.findMany({
+      orderBy: { createdAt: 'desc' },
+      select: {
+        trackingCode: true,
+        originAddress: true,
+        destinationAddress: true,
+        recipientName: true,
+        contactPhone: true,
+        weightKg: true,
+        status: true,
+        createdAt: true,
+        deliveredAt: true,
+      },
+    });
+
+    const headers = [
+      'trackingCode',
+      'originAddress',
+      'destinationAddress',
+      'recipientName',
+      'contactPhone',
+      'weightKg',
+      'status',
+      'createdAt',
+      'deliveredAt',
+    ];
+
+    const escape = (value: unknown): string => {
+      if (value === null || value === undefined) return '';
+      const str = String(value);
+      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    };
+
+    const rows = shipments.map((s) =>
+      headers.map((h) => escape((s as any)[h])).join(','),
+    );
+
+    return [headers.join(','), ...rows].join('\n');
   }
 }

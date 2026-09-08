@@ -33,6 +33,12 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'dashboard',
+    canActivate: [authGuard, roleGuard(Role.SUPERVISOR)],
+    loadComponent: () =>
+      import('./features/dashboard/dashboard.component').then((m) => m.DashboardComponent),
+  },
+  {
     path: 'tracking',
     loadComponent: () =>
       import('./features/tracking/public-tracking/public-tracking.component').then(

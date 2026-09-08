@@ -59,4 +59,19 @@ export class ShipmentsService {
       vehicleCapacity,
     });
   }
+
+  getDashboard(): Observable<{ total: number; byStatus: Record<string, number> }> {
+    return this.http.get<{ total: number; byStatus: Record<string, number> }>(
+      `${this.API_URL}/dashboard`,
+    );
+  }
+
+  exportCsv(status?: string): Observable<Blob> {
+    const params = status ? new HttpParams().set('status', status) : undefined;
+
+    return this.http.get(`${this.API_URL}/export/csv`, {
+      params,
+      responseType: 'blob',
+    });
+  }
 }
