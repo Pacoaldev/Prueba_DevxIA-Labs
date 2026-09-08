@@ -1,7 +1,7 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 COPY package*.json ./
-RUN npm install
+RUN npm install --ignore-scripts
 COPY . .
 RUN npx prisma generate
 RUN npm run build
@@ -9,9 +9,9 @@ RUN npm run build
 FROM node:20-alpine AS runner
 WORKDIR /app
 COPY package*.json ./
-RUN npm install --omit=dev
+COPY prisma ./prisma
+RUN npm install --omit=dev --ignore-scripts
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules ./node_modules
 
 EXPOSE 3000
