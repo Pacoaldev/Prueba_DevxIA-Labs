@@ -1,9 +1,10 @@
-import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import { ShipmentsService } from './shipments.service.js';
 import { CreateShipmentDto } from './dto/create-shipment.dto.js';
 import { ShipmentQueryDto } from './dto/shipment-query.dto.js';
+import { UpdateShipmentStatusDto } from './dto/update-shipment-status.dto.js';
 
 @Controller('shipments')
 @UseGuards(JwtAuthGuard)
@@ -26,5 +27,22 @@ export class ShipmentsController {
   @Get(':id')
   async findOne(@Param('id') id: string) {
     return this.shipmentsService.findOne(id);
+  }
+
+  @Patch(':id/status')
+  async updateStatus(
+    @Param('id') id: string,
+    @Body() dto: UpdateShipmentStatusDto,
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.shipmentsService.updateStatus(id, dto, userId);
+  }
+
+  @Delete(':id')
+  async cancel(
+    @Param('id') id: string,
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.shipmentsService.cancel(id, userId);
   }
 }

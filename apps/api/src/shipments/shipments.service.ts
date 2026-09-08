@@ -2,11 +2,16 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateShipmentDto } from './dto/create-shipment.dto.js';
 import { ShipmentQueryDto } from './dto/shipment-query.dto.js';
+import { UpdateShipmentStatusDto } from './dto/update-shipment-status.dto.js';
+import { ShipmentTransitionService } from './services/shipment-transition.service.js';
 import { ShipmentStatus } from '@prisma/client';
 
 @Injectable()
 export class ShipmentsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private transitionService: ShipmentTransitionService,
+  ) {}
 
   private generateTrackingCode(): string {
     const today = new Date();
@@ -111,5 +116,84 @@ export class ShipmentsService {
     }
 
     return shipment;
+  }
+
+  async updateStatus(id: string, dto: UpdateShipmentStatusDto, userId: string) {
+    const shipment = await this.findOne(id);
+    this.transitionService.validateTransition(shipment.status, dto.status);
+
+    return this.prisma.$transaction(async (tx) => {
+      const isDelivered = dto.status === ShipmentStatus.DELIVERED;
+
+      const updatedShipment = await tx.shipment.update({
+        where: { id },
+        data: {
+          status: dto.status,
+          deliveredAt: isDelivered ? new Date() : shipment.deliveredAt,
+        },
+      });
+
+      await tx.shipmentEvent.create({
+        data: {
+          shipmentId: id,
+          status: dto.status,
+          location: dto.location,
+          notes: dto.notes,
+          userId,
+        },
+      });
+
+      return tx.shipment.findUnique({
+        where: { id },
+        include: {
+          events: {
+            orderBy: { occurredAt: 'asc' },
+            include: {
+              user: {
+                select: { id: true, email: true, role: true },
+              },
+            },
+          },
+        },
+      });
+    });
+  }
+
+  async cancel(id: string, userId: string, location?: string, notes?: string) {
+    const shipment = await this.findOne(id);
+    this.transitionService.validateCancellation(shipment.status);
+
+    return this.prisma.$transaction(async (tx) => {
+      await tx.shipment.update({
+        where: { id },
+        data: {
+          status: ShipmentStatus.CANCELLED,
+        },
+      });
+
+      await tx.shipmentEvent.create({
+        data: {
+          shipmentId: id,
+          status: ShipmentStatus.CANCELLED,
+          location: location || shipment.destinationAddress,
+          notes: notes || 'Envío cancelado',
+          userId,
+        },
+      });
+
+      return tx.shipment.findUnique({
+        where: { id },
+        include: {
+          events: {
+            orderBy: { occurredAt: 'asc' },
+            include: {
+              user: {
+                select: { id: true, email: true, role: true },
+              },
+            },
+          },
+        },
+      });
+    });
   }
 }
