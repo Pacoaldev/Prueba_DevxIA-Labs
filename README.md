@@ -55,7 +55,6 @@ El endpoint `POST /shipments/assign-vehicles` resuelve el problema de Bin Packin
 ├── apps/
 │   ├── api/          # Backend NestJS + Prisma + PostgreSQL
 │   └── web/          # Frontend Angular 17+ Standalone
-├── documentacion/    # Especificaciones y control de commits
 ├── docker-compose.yml
 └── README.md
 ```
