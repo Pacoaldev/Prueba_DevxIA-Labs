@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { PublicTrackingInfo, TrackingService } from '../../../core/services/tracking.service';
+import { ToastService } from '../../../core/services/toast.service';
 import { ShipmentStatus, STATUS_LABELS } from '../../../core/models/shipment.model';
 
 @Component({
@@ -33,9 +34,6 @@ import { ShipmentStatus, STATUS_LABELS } from '../../../core/models/shipment.mod
               {{ loading() ? 'Buscando...' : 'Buscar' }}
             </button>
           </form>
-          @if (errorMessage()) {
-            <div class="alert-error">{{ errorMessage() }}</div>
-          }
         </div>
 
         <!-- Tracking Results Card -->
@@ -115,7 +113,6 @@ import { ShipmentStatus, STATUS_LABELS } from '../../../core/models/shipment.mod
     .search-form input { flex: 1; padding: 0.75rem 1rem; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 1rem; }
     .search-form button { padding: 0.75rem 1.5rem; background: #2563eb; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; }
     .search-form button:disabled { background: #94a3b8; cursor: not-allowed; }
-    .alert-error { background: #fef2f2; color: #991b1b; padding: 0.75rem; border-radius: 8px; font-size: 0.9rem; margin-top: 1rem; border: 1px solid #fecaca; }
     .result-card { background: white; padding: 2rem; border-radius: 12px; margin-top: 1.5rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
     .result-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 1rem; border-bottom: 1px solid #e2e8f0; margin-bottom: 1.5rem; }
     .tracking-code { font-size: 1.5rem; font-weight: bold; color: #0f172a; margin-right: 0.75rem; font-family: monospace; }
@@ -144,13 +141,13 @@ import { ShipmentStatus, STATUS_LABELS } from '../../../core/models/shipment.mod
 export class PublicTrackingComponent implements OnInit {
   searchCode = '';
   loading = signal(false);
-  errorMessage = signal('');
   trackingInfo = signal<PublicTrackingInfo | null>(null);
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private trackingService: TrackingService,
+    private toast: ToastService,
   ) {}
 
   ngOnInit(): void {
@@ -173,7 +170,6 @@ export class PublicTrackingComponent implements OnInit {
 
   fetchTracking(code: string): void {
     this.loading.set(true);
-    this.errorMessage.set('');
     this.trackingInfo.set(null);
 
     this.trackingService.getPublicTracking(code).subscribe({
@@ -183,7 +179,7 @@ export class PublicTrackingComponent implements OnInit {
       },
       error: (err) => {
         this.loading.set(false);
-        this.errorMessage.set(
+        this.toast.error(
           err.error?.message || `No se encontró ningún envío con el código ${code}.`,
         );
       },

@@ -2,6 +2,7 @@ import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { ShipmentsService } from '../../core/services/shipments.service';
+import { ToastService } from '../../core/services/toast.service';
 import { ShipmentStatus, STATUS_LABELS } from '../../core/models/shipment.model';
 
 @Component({
@@ -21,9 +22,7 @@ import { ShipmentStatus, STATUS_LABELS } from '../../core/models/shipment.model'
         
         @if (loading()) {
           <div class="loading">Cargando estadísticas...</div>
-        } @else if (error()) {
-          <div class="alert-error">{{ error() }}</div>
-        } @else {
+        } @else if (dashboard()) {
           <div class="stats-grid">
             @for (status of statuses; track status) {
               <div class="stat-card">
@@ -51,12 +50,10 @@ import { ShipmentStatus, STATUS_LABELS } from '../../core/models/shipment.model'
     .stat-card h3 { margin: 0 0 0.5rem; color: #64748b; font-size: 0.9rem; }
     .stat-value { font-size: 2rem; font-weight: bold; color: #0f172a; }
     .loading { text-align: center; padding: 2rem; color: #64748b; }
-    .alert-error { background: #fef2f2; color: #991b1b; padding: 0.75rem; border-radius: 6px; margin-top: 1rem; border: 1px solid #fecaca; }
   `],
 })
 export class DashboardComponent implements OnInit {
   loading = signal(false);
-  error = signal('');
   dashboard = signal<{ total: number; byStatus: Record<ShipmentStatus, number> } | null>(null);
   
   ShipmentStatus = ShipmentStatus;
@@ -70,7 +67,10 @@ export class DashboardComponent implements OnInit {
     ShipmentStatus.CANCELLED,
   ];
 
-  constructor(private shipmentsService: ShipmentsService) {}
+  constructor(
+    private shipmentsService: ShipmentsService,
+    private toast: ToastService,
+  ) {}
 
   ngOnInit(): void {
     this.loadDashboard();
@@ -86,15 +86,14 @@ export class DashboardComponent implements OnInit {
 
   loadDashboard(): void {
     this.loading.set(true);
-    this.error.set('');
     this.shipmentsService.getDashboard().subscribe({
       next: (data) => {
         this.dashboard.set(data);
         this.loading.set(false);
       },
       error: (err) => {
-        this.error.set(err.error?.message || 'Error al cargar el dashboard.');
         this.loading.set(false);
+        this.toast.error(err.error?.message || 'Error al cargar el dashboard.');
       },
     });
   }

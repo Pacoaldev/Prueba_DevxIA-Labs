@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
+import { ToastService } from '../../../core/services/toast.service';
 
 @Component({
   selector: 'app-login',
@@ -43,10 +44,6 @@ import { AuthService } from '../../../core/services/auth.service';
             }
           </div>
 
-          @if (errorMessage()) {
-            <div class="alert-error">{{ errorMessage() }}</div>
-          }
-
           <button type="submit" [disabled]="form.invalid || loading()" class="btn-submit">
             {{ loading() ? 'Iniciando sesión...' : 'Iniciar Sesión' }}
           </button>
@@ -68,7 +65,6 @@ import { AuthService } from '../../../core/services/auth.service';
     .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 500; color: #334155; font-size: 0.9rem; }
     .form-group input { width: 100%; padding: 0.75rem; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 1rem; }
     .error { color: #ef4444; font-size: 0.8rem; margin-top: 0.25rem; }
-    .alert-error { background: #fef2f2; color: #991b1b; padding: 0.75rem; border-radius: 6px; font-size: 0.875rem; margin-bottom: 1rem; border: 1px solid #fecaca; }
     .btn-submit { width: 100%; padding: 0.85rem; background: #2563eb; color: white; border: none; border-radius: 6px; font-weight: 600; font-size: 1rem; cursor: pointer; }
     .btn-submit:disabled { background: #94a3b8; cursor: not-allowed; }
     .footer { margin-top: 1.5rem; text-align: center; font-size: 0.9rem; }
@@ -78,12 +74,12 @@ import { AuthService } from '../../../core/services/auth.service';
 export class LoginComponent {
   form: FormGroup;
   loading = signal(false);
-  errorMessage = signal('');
 
   constructor(
     private fb: FormBuilder,
     private authService: AuthService,
     private router: Router,
+    private toast: ToastService,
   ) {
     this.form = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
@@ -95,7 +91,6 @@ export class LoginComponent {
     if (this.form.invalid) return;
 
     this.loading.set(true);
-    this.errorMessage.set('');
 
     this.authService.login(this.form.value).subscribe({
       next: () => {
@@ -104,7 +99,7 @@ export class LoginComponent {
       },
       error: (err) => {
         this.loading.set(false);
-        this.errorMessage.set(err.error?.message || 'Error de autenticación. Verifique sus credenciales.');
+        this.toast.error(err.error?.message || 'Error de autenticación. Verifique sus credenciales.');
       },
     });
   }

@@ -1,8 +1,9 @@
 import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
+import { ToastService } from '../../../core/services/toast.service';
 import { Role } from '../../../core/models/auth.model';
 
 @Component({
@@ -36,14 +37,6 @@ import { Role } from '../../../core/models/auth.model';
             </select>
           </div>
 
-          @if (successMessage()) {
-            <div class="alert-success">{{ successMessage() }}</div>
-          }
-
-          @if (errorMessage()) {
-            <div class="alert-error">{{ errorMessage() }}</div>
-          }
-
           <button type="submit" [disabled]="form.invalid || loading()" class="btn-submit">
             {{ loading() ? 'Registrando...' : 'Registrar Usuario' }}
           </button>
@@ -63,8 +56,6 @@ import { Role } from '../../../core/models/auth.model';
     .form-group { margin-bottom: 1.25rem; }
     .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 500; color: #334155; font-size: 0.9rem; }
     .form-group input, .form-group select { width: 100%; padding: 0.75rem; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 1rem; }
-    .alert-success { background: #f0fdf4; color: #166534; padding: 0.75rem; border-radius: 6px; font-size: 0.875rem; margin-bottom: 1rem; border: 1px solid #bbf7d0; }
-    .alert-error { background: #fef2f2; color: #991b1b; padding: 0.75rem; border-radius: 6px; font-size: 0.875rem; margin-bottom: 1rem; border: 1px solid #fecaca; }
     .btn-submit { width: 100%; padding: 0.85rem; background: #059669; color: white; border: none; border-radius: 6px; font-weight: 600; font-size: 1rem; cursor: pointer; }
     .btn-submit:disabled { background: #94a3b8; cursor: not-allowed; }
     .footer { margin-top: 1.5rem; text-align: center; font-size: 0.9rem; }
@@ -75,13 +66,11 @@ export class RegisterComponent {
   Role = Role;
   form: FormGroup;
   loading = signal(false);
-  successMessage = signal('');
-  errorMessage = signal('');
 
   constructor(
     private fb: FormBuilder,
     private authService: AuthService,
-    private router: Router,
+    private toast: ToastService,
   ) {
     this.form = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
@@ -94,18 +83,16 @@ export class RegisterComponent {
     if (this.form.invalid) return;
 
     this.loading.set(true);
-    this.successMessage.set('');
-    this.errorMessage.set('');
 
     this.authService.register(this.form.value).subscribe({
       next: (user) => {
         this.loading.set(false);
-        this.successMessage.set(`Usuario ${user.email} (${user.role}) registrado exitosamente.`);
+        this.toast.success(`Usuario ${user.email} (${user.role}) registrado exitosamente.`);
         this.form.reset({ role: Role.OPERATOR });
       },
       error: (err) => {
         this.loading.set(false);
-        this.errorMessage.set(err.error?.message || 'Error al registrar el usuario.');
+        this.toast.error(err.error?.message || 'Error al registrar el usuario.');
       },
     });
   }

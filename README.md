@@ -45,6 +45,7 @@ El endpoint `POST /shipments/assign-vehicles` resuelve el problema de Bin Packin
 - **Estado Reactivo con Signals**: Uso de Angular `signal()` para manejar el estado reactivo de las listas, modales, alertas y datos de seguimiento público.
 - **Intercepción JWT**: `jwtInterceptor` adjunta automáticamente el token Bearer JWT almacenado a todas las peticiones HTTP que requieren autenticación.
 - **Guards de Ruta**: `authGuard` protege las rutas privadas y `roleGuard` restringe la pantalla de registro únicamente al rol `SUPERVISOR`.
+- **Feedback visual (snackbars)**: errores y confirmaciones se muestran con toasts globales (`ToastService`), alineados con el requisito de loading states y manejo de errores del enunciado.
 
 ---
 
@@ -118,6 +119,7 @@ npm test
 
 ## 📊 Puntos Bonus Implementados
 
+- **Asignación de vehículos (FFD)**: desde el listado de envíos se pueden seleccionar paquetes en estado `IN_WAREHOUSE`, ejecutar `POST /shipments/assign-vehicles` y ver el resultado con ocupación y capacidad restante por vehículo.
 - **Dashboard SUPERVISOR**: `/dashboard` muestra tarjetas con el total de envíos por estado.
 - **Exportación CSV**: desde el listado de envíos, los supervisores pueden exportar el listado filtrado a CSV.
 - **Swagger**: documentación OpenAPI disponible en `/api`.

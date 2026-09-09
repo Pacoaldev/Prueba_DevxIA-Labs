@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ShipmentsService } from '../../../core/services/shipments.service';
+import { ToastService } from '../../../core/services/toast.service';
 import {
   Shipment,
   ShipmentStatus,
@@ -128,10 +129,6 @@ import {
                 <textarea formControlName="notes" rows="3" placeholder="Paquete listo para entrega."></textarea>
               </div>
 
-              @if (statusError()) {
-                <div class="alert-error">{{ statusError() }}</div>
-              }
-
               <div class="modal-actions">
                 <button type="button" (click)="closeStatusModal()" class="btn-secondary">Cancelar</button>
                 <button type="submit" [disabled]="statusForm.invalid || updating()" class="btn-primary">
@@ -183,7 +180,6 @@ import {
     .form-group label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem; color: #334155; }
     .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 0.6rem; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-family: inherit; }
     .modal-actions { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem; }
-    .alert-error { background: #fef2f2; color: #991b1b; padding: 0.75rem; border-radius: 6px; font-size: 0.85rem; margin-bottom: 1rem; border: 1px solid #fecaca; }
   `],
 })
 export class ShipmentDetailComponent implements OnInit {
@@ -192,11 +188,11 @@ export class ShipmentDetailComponent implements OnInit {
   showStatusModal = signal(false);
   statusForm: FormGroup;
   updating = signal(false);
-  statusError = signal('');
 
   constructor(
     private route: ActivatedRoute,
     private shipmentsService: ShipmentsService,
+    private toast: ToastService,
     private fb: FormBuilder,
   ) {
     this.statusForm = this.fb.group({
@@ -217,6 +213,9 @@ export class ShipmentDetailComponent implements OnInit {
     this.shipmentsService.getShipmentById(this.shipmentId).subscribe({
       next: (data) => {
         this.shipment.set(data);
+      },
+      error: (err) => {
+        this.toast.error(err.error?.message || 'Error al cargar el detalle del envío.');
       },
     });
   }
@@ -251,7 +250,6 @@ export class ShipmentDetailComponent implements OnInit {
       location: this.shipment()?.destinationAddress || '',
       notes: '',
     });
-    this.statusError.set('');
   }
 
   closeStatusModal(): void {
@@ -262,7 +260,6 @@ export class ShipmentDetailComponent implements OnInit {
     if (this.statusForm.invalid) return;
 
     this.updating.set(true);
-    this.statusError.set('');
 
     this.shipmentsService
       .updateStatus(this.shipmentId, this.statusForm.value)
@@ -271,10 +268,11 @@ export class ShipmentDetailComponent implements OnInit {
           this.shipment.set(updated);
           this.updating.set(false);
           this.closeStatusModal();
+          this.toast.success('Estado del envío actualizado.');
         },
         error: (err) => {
           this.updating.set(false);
-          this.statusError.set(err.error?.message || 'Error al cambiar el estado.');
+          this.toast.error(err.error?.message || 'Error al cambiar el estado.');
         },
       });
   }
@@ -285,9 +283,10 @@ export class ShipmentDetailComponent implements OnInit {
     this.shipmentsService.cancelShipment(this.shipmentId).subscribe({
       next: (cancelled) => {
         this.shipment.set(cancelled);
+        this.toast.success('Envío cancelado.');
       },
       error: (err) => {
-        alert(err.error?.message || 'Error al cancelar el envío.');
+        this.toast.error(err.error?.message || 'Error al cancelar el envío.');
       },
     });
   }

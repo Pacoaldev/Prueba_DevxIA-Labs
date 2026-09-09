@@ -4,6 +4,7 @@ import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } 
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { ShipmentsService } from '../../../core/services/shipments.service';
+import { ToastService } from '../../../core/services/toast.service';
 import {
   Shipment,
   ShipmentStatus,
@@ -141,10 +142,6 @@ import {
                 <input type="number" step="0.1" formControlName="weightKg" placeholder="15.5" />
               </div>
 
-              @if (createError()) {
-                <div class="alert-error">{{ createError() }}</div>
-              }
-
               <div class="modal-actions">
                 <button type="button" (click)="closeCreateModal()" class="btn-secondary">Cancelar</button>
                 <button type="submit" [disabled]="createForm.invalid || creating()" class="btn-primary">
@@ -169,10 +166,6 @@ import {
             </div>
 
             <p>Envíos seleccionados: <strong>{{ selectedShipmentIds().length }}</strong></p>
-
-            @if (assignError()) {
-              <div class="alert-error">{{ assignError() }}</div>
-            }
 
             <button
               (click)="runVehicleAssignment()"
@@ -247,7 +240,6 @@ import {
     .form-group label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem; color: #334155; }
     .form-group input { width: 100%; padding: 0.6rem; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; }
     .modal-actions { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1rem; }
-    .alert-error { background: #fef2f2; color: #991b1b; padding: 0.75rem; border-radius: 6px; margin-bottom: 1rem; font-size: 0.85rem; border: 1px solid #fecaca; }
     .vehicle-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.75rem; margin-top: 0.75rem; }
     .vehicle-card h5 { margin: 0 0 0.5rem; color: #0f172a; }
   `],
@@ -270,18 +262,17 @@ export class ShipmentListComponent implements OnInit {
   showCreateModal = signal(false);
   createForm: FormGroup;
   creating = signal(false);
-  createError = signal('');
 
   // Modal Asignar Vehículos
   showAssignModal = signal(false);
   vehicleCapacity = 100;
   assigning = signal(false);
-  assignError = signal('');
   assignmentResult = signal<VehicleAssignmentResult | null>(null);
 
   constructor(
     private shipmentsService: ShipmentsService,
     private authService: AuthService,
+    private toast: ToastService,
     private fb: FormBuilder,
   ) {
     this.createForm = this.fb.group({
@@ -322,8 +313,9 @@ export class ShipmentListComponent implements OnInit {
         this.totalPages.set(res.meta.totalPages);
         this.loading.set(false);
       },
-      error: () => {
+      error: (err) => {
         this.loading.set(false);
+        this.toast.error(err.error?.message || 'Error al cargar los envíos.');
       },
     });
   }
@@ -356,7 +348,6 @@ export class ShipmentListComponent implements OnInit {
   openCreateModal(): void {
     this.showCreateModal.set(true);
     this.createForm.reset({ weightKg: 1.0 });
-    this.createError.set('');
   }
 
   closeCreateModal(): void {
@@ -367,24 +358,23 @@ export class ShipmentListComponent implements OnInit {
     if (this.createForm.invalid) return;
 
     this.creating.set(true);
-    this.createError.set('');
 
     this.shipmentsService.createShipment(this.createForm.value).subscribe({
       next: () => {
         this.creating.set(false);
         this.closeCreateModal();
+        this.toast.success('Envío creado correctamente.');
         this.loadShipments();
       },
       error: (err) => {
         this.creating.set(false);
-        this.createError.set(err.error?.message || 'Error al crear el envío.');
+        this.toast.error(err.error?.message || 'Error al crear el envío.');
       },
     });
   }
 
   openAssignModal(): void {
     this.showAssignModal.set(true);
-    this.assignError.set('');
     this.assignmentResult.set(null);
   }
 
@@ -396,7 +386,6 @@ export class ShipmentListComponent implements OnInit {
     if (this.selectedShipmentIds().length === 0 || this.vehicleCapacity <= 0) return;
 
     this.assigning.set(true);
-    this.assignError.set('');
 
     this.shipmentsService
       .assignVehicles(this.selectedShipmentIds(), this.vehicleCapacity)
@@ -404,10 +393,11 @@ export class ShipmentListComponent implements OnInit {
         next: (result) => {
           this.assigning.set(false);
           this.assignmentResult.set(result);
+          this.toast.success(`Asignación calculada: ${result.totalVehiclesUsed} vehículo(s).`);
         },
         error: (err) => {
           this.assigning.set(false);
-          this.assignError.set(err.error?.message || 'Error al calcular la asignación de vehículos.');
+          this.toast.error(err.error?.message || 'Error al calcular la asignación de vehículos.');
         },
       });
   }
@@ -422,9 +412,10 @@ export class ShipmentListComponent implements OnInit {
         a.download = `envios_${new Date().toISOString().slice(0, 10)}.csv`;
         a.click();
         window.URL.revokeObjectURL(url);
+        this.toast.success('CSV exportado correctamente.');
       },
       error: (err) => {
-        alert(err.error?.message || 'Error al exportar los envíos a CSV.');
+        this.toast.error(err.error?.message || 'Error al exportar los envíos a CSV.');
       },
     });
   }
